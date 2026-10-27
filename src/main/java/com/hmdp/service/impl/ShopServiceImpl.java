@@ -21,8 +21,6 @@ import java.util.concurrent.TimeUnit;
  *  服务实现类
  * </p>
  *
- * @author 虎哥
- * @since 2021-12-22
  */
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
@@ -40,10 +38,17 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             Shop shop = JSONUtil.toBean(shopJson, Shop.class, true);
             return Result.ok(shop);
         }
-        //4.缓存不存在，根据id查询数据库
+        //判断命中的是否是空值
+        if(shopJson != null){//是空字符串
+            return Result.fail("商铺不存在");
+        }
+        //4.缓存不存在（shopJson为null），根据id查询数据库
         Shop shop = getById(id);
         //5.数据库中也不存在
         if(shop == null){
+            //将空值写入redis，过期时间2分钟
+            stringRedisTemplate.opsForValue().set(RedisConstants.CACHE_SHOP_KEY + id, "", RedisConstants.CACHE_NULL_TTL, TimeUnit.MINUTES);
+
             return Result.fail("商铺不存在");
         }
         //6.数据库中存在，把对象转成json字符串，写入redis，并设置过期时间
