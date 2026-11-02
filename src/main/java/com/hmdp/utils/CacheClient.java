@@ -15,7 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
+/**缓存客户端工具类
+ * 用于操作redis缓存，提供缓存设置、查询、删除等操作*/
 @Component
 @Slf4j
 public class CacheClient {
