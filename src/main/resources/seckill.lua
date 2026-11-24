@@ -9,7 +9,7 @@ local voucherId = ARGV[1]
 -- 1.2.用户id
 local userId = ARGV[2]
 -- 1.3.订单id
-
+local orderId = ARGV[3]
 
 -- 2.数据key
 -- 2.1.库存key
@@ -18,6 +18,18 @@ local stockKey = 'seckill:stock:' .. voucherId
 local orderKey = 'seckill:order:' .. voucherId
 
 -- 3.脚本业务
+-- 3.0 秒杀时间窗口校验
+local now = redis.call('TIME')
+local nowMs = tonumber(now[1]) * 1000 + math.floor(tonumber(now[2]) / 1000)
+local beginMs = tonumber(redis.call('get', 'seckill:begin:' .. voucherId))
+local endMs = tonumber(redis.call('get', 'seckill:end:' .. voucherId))
+
+if beginMs and nowMs < beginMs then
+    return 3  -- 3 = 秒杀尚未开始
+end
+if endMs and nowMs > endMs then
+    return 4  -- 4 = 秒杀已结束
+end
 -- 3.1.判断库存是否充足 get stockKey
 if(tonumber(redis.call('get', stockKey)) <= 0) then
     -- 3.2.库存不足，返回1
@@ -33,5 +45,5 @@ redis.call('incrby', stockKey, -1)
 -- 3.5.下单（保存用户）sadd orderKey userId
 redis.call('sadd', orderKey, userId)
 -- 3.6.发送消息到队列中， XADD stream.orders * k1 v1 k2 v2 ...
---redis.call('xadd', 'stream.orders', '*', 'userId', userId, 'voucherId', voucherId, 'id', orderId)
+redis.call('xadd', 'stream.orders', '*', 'userId', userId, 'voucherId', voucherId, 'id', orderId)
 return 0

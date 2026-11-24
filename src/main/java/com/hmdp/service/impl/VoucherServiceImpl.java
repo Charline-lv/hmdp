@@ -53,6 +53,19 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucherService.save(seckillVoucher);
 
         // 缓存优惠券库存到Redis
-        stringRedisTemplate.opsForValue().set(RedisConstants.SECKILL_STOCK_KEY + voucher.getId(), voucher.getStock().toString());
+        stringRedisTemplate.opsForValue().set(
+                RedisConstants.SECKILL_STOCK_KEY + voucher.getId(),
+                voucher.getStock().toString());
+
+        // 缓存开始时间（时间戳形式方便 Lua 比较）
+        stringRedisTemplate.opsForValue().set(
+                "seckill:begin:" + voucher.getId(),
+                String.valueOf(voucher.getBeginTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+        );
+        // 缓存结束时间
+        stringRedisTemplate.opsForValue().set(
+                "seckill:end:" + voucher.getId(),
+                String.valueOf(voucher.getEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+        );
     }
 }
